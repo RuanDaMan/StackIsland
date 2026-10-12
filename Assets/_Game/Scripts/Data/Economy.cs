@@ -52,14 +52,15 @@ namespace StackIsland
         public static float PenRespawn(int src) => 2.5f * Mathf.Pow(0.9f, src);
         public static float FieldShare(int src) => Mathf.Min(1f, 0.4f + 0.06f * src);
         public static float FieldRegrow(int src) => 3f + 1.3f * src;
-        public static float CookSeconds(YardDef d, int speed) => d.CookSeconds * Mathf.Pow(0.9f, speed);
+        public static float CookSeconds(YardDef d, int speed) => d.CookSeconds * CookFactor * Mathf.Pow(0.9f, speed);
+        const float CookFactor = 0.5f;   // stations keep up with what the gatherers bring in
         public static double PriceMult(int recipe) => 1.0 + 0.15 * recipe;
-        public static float SpawnEvery(int busy) => 2.2f * Mathf.Pow(0.9f, busy);
+        public static float SpawnEvery(int busy) => 1.1f * Mathf.Pow(0.9f, busy);
         public static int MaxWant(int busy) => 2 + (busy + 1) / 2;
         /// <summary>Smallest order a customer places: orders lean to the top half of the range.</summary>
         public static int MinWant(int maxWant) => Mathf.Max(2, (maxWant + 2) / 2);
         public static double AvgWant(int busy) => (MinWant(MaxWant(busy)) + MaxWant(busy)) * 0.5;
-        public const float ServeSeconds = 0.16f;   // a customer takes one item from the counter every this
+        public const float ServeSeconds = 0.1f;   // a customer takes one item from the counter every this
         public static float HelperSpeed(int crew) => 3.6f * (1 + 0.08f * crew);
         public static int GathererCarry(int crew) => 8 + 2 * crew;
         /// <summary>How hard each catcher hits: every catcher hired makes the whole team stronger; the last hire one-shots.</summary>

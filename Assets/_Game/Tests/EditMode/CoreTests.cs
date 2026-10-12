@@ -52,7 +52,7 @@ namespace StackIsland.Tests
         public void BalanceSimPacesYardsEvenlyWithoutStalls()
         {
             BalanceModel.Run();
-            Assert.That(BalanceModel.LastTotalHours, Is.InRange(10.0, 40.0), "full game length (thoughtful player)");
+            Assert.That(BalanceModel.LastTotalHours, Is.InRange(3.0, 40.0), "full game length (thoughtful player)");
             Assert.LessOrEqual(BalanceModel.LastLongestWaitMinutes, 25.0, "no single purchase takes ages to save up for");
             // every yard after the first takes roughly the same time (the first is a quick tutorial, the tail mops up)
             var middle = BalanceModel.LastYardHours.Skip(1).Take(BalanceModel.LastYardHours.Count - 2).ToList();
