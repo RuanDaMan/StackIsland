@@ -89,6 +89,7 @@ namespace StackIsland
     /// </summary>
     public class CatcherWorker : Worker
     {
+        public int Damage = 1;
         enum Mode { Gather, Deliver }
         Mode _mode;
         float _attack, _transfer;
@@ -187,7 +188,7 @@ namespace StackIsland
                     dir.y = 0;
                     Anim.Attack(2f);
                     Fx.I?.Slash(transform.position + Vector3.up * 0.9f + dir.normalized * 0.7f, dir.normalized);
-                    target.Hit(1, transform.position);
+                    target.Hit(Damage, transform.position);
                 }
             }
         }

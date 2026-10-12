@@ -17,6 +17,7 @@ namespace StackIsland
         public static readonly Vector3 SrcGateLocal = new Vector3(-4.5f, 0, 4.2f);
         public const float EntryGateX = 10.2f, ExitGateX = 0.6f;
         public const float SideGateZ0 = 4.6f, SideGateZ1 = 7.8f;     // east/west walkway gap
+        public const float WideGapZ0 = -12.5f, WideGapZ1 = 1.5f;     // the big open side between neighbouring yards
 
         public YardDef Def { get; private set; }
         public Vector3 Origin { get; private set; }
@@ -201,17 +202,21 @@ namespace StackIsland
             if (first) Wall(new Vector3(MinX, 0, MinZ), new Vector3(MinX, 0, MaxZ));
             else
             {
-                Wall(new Vector3(MinX, 0, MinZ), new Vector3(MinX, 0, SideGateZ0));
+                Wall(new Vector3(MinX, 0, MinZ), new Vector3(MinX, 0, WideGapZ0));
+                Wall(new Vector3(MinX, 0, WideGapZ1), new Vector3(MinX, 0, SideGateZ0));
                 Wall(new Vector3(MinX, 0, SideGateZ1), new Vector3(MinX, 0, MaxZ));
             }
             // east wall (gap to the next yard, closed by a cage gate until bought)
             if (!hasNext) Wall(new Vector3(MaxX, 0, MinZ), new Vector3(MaxX, 0, MaxZ));
             else
             {
-                Wall(new Vector3(MaxX, 0, MinZ), new Vector3(MaxX, 0, SideGateZ0));
+                Wall(new Vector3(MaxX, 0, MinZ), new Vector3(MaxX, 0, WideGapZ0));
+                Wall(new Vector3(MaxX, 0, WideGapZ1), new Vector3(MaxX, 0, SideGateZ0));
                 Wall(new Vector3(MaxX, 0, SideGateZ1), new Vector3(MaxX, 0, MaxZ));
                 _eastGate = new GameObject("eastGate");
                 _eastGate.transform.SetParent(transform, false);
+                // the wide side stays walled off until the next yard is bought
+                Wall(new Vector3(MaxX, 0, WideGapZ0), new Vector3(MaxX, 0, WideGapZ1), _eastGate.transform);
                 ProcArt.CageFence(_eastGate.transform, W(MaxX, SideGateZ0), W(MaxX, SideGateZ1), 1.3f, Def.Cage);
                 var col = new GameObject("gateCollider");
                 col.transform.SetParent(_eastGate.transform, false);
@@ -241,13 +246,13 @@ namespace StackIsland
         }
 
         /// <summary>A straight run of thick low wall (yard-local ends) with one collider.</summary>
-        void Wall(Vector3 a, Vector3 b)
+        void Wall(Vector3 a, Vector3 b, Transform parent = null)
         {
             if ((b - a).magnitude < 0.1f) return;
             var wa = Origin + a;
             var wb = Origin + b;
-            ProcArt.LowWall(transform, wa, wb, 0.9f, 0.7f, Def.Wall);
-            Blocker((wa + wb) * 0.5f, new Vector3(0.7f, 3f, (wb - wa).magnitude), Quaternion.LookRotation((wb - wa).normalized));
+            ProcArt.LowWall(parent ?? transform, wa, wb, 0.9f, 0.7f, Def.Wall);
+            Blocker((wa + wb) * 0.5f, new Vector3(0.7f, 3f, (wb - wa).magnitude), Quaternion.LookRotation((wb - wa).normalized), parent);
         }
 
         void Cage(Vector3 a, Vector3 b)
@@ -259,10 +264,10 @@ namespace StackIsland
             Blocker((wa + wb) * 0.5f, new Vector3(0.3f, 3f, (wb - wa).magnitude), Quaternion.LookRotation((wb - wa).normalized));
         }
 
-        void Blocker(Vector3 center, Vector3 size, Quaternion rot)
+        void Blocker(Vector3 center, Vector3 size, Quaternion rot, Transform parent = null)
         {
             var go = new GameObject("wallCollider");
-            go.transform.SetParent(transform, false);
+            go.transform.SetParent(parent ?? transform, false);
             go.transform.position = center + Vector3.up * size.y * 0.5f;
             go.transform.rotation = rot;
             go.AddComponent<BoxCollider>().size = size;
@@ -333,14 +338,10 @@ namespace StackIsland
                 float xa = a.x + Yard.MaxX, xb = a.x + Yard.Spacing + Yard.MinX;
                 ProcArt.MeshObject("walkway", parent, ProcArt.RoundedSlab(xb - xa + 1.4f, Yard.SideGateZ1 - Yard.SideGateZ0 + 0.6f, 0.4f, 0.05f),
                     Mats.Lit(new Color(0.96f, 0.8f, 0.62f)), new Vector3((xa + xb) * 0.5f, 0, zc)).GetComponent<Renderer>().receiveShadows = true;
-                foreach (float z in new[] { Yard.SideGateZ0 - 0.2f, Yard.SideGateZ1 + 0.2f })
-                {
-                    ProcArt.LowWall(parent, new Vector3(xa, 0, z), new Vector3(xb, 0, z), 0.6f, 0.4f);
-                    var b = new GameObject("walkwayCollider");
-                    b.transform.SetParent(parent, false);
-                    b.transform.position = new Vector3((xa + xb) * 0.5f, 1.5f, z);
-                    b.AddComponent<BoxCollider>().size = new Vector3(xb - xa, 3f, 0.4f);
-                }
+                // and a wide plaza across the open side, so you can wander straight over between yards
+                float pz = (Yard.WideGapZ0 + Yard.WideGapZ1) * 0.5f;
+                ProcArt.MeshObject("plaza", parent, ProcArt.RoundedSlab(xb - xa + 1.4f, Yard.WideGapZ1 - Yard.WideGapZ0 + 0.6f, 0.8f, 0.05f),
+                    Mats.Lit(new Color(0.96f, 0.8f, 0.62f)), new Vector3((xa + xb) * 0.5f, 0, pz)).GetComponent<Renderer>().receiveShadows = true;
             }
             var o = Yard.OriginOf(index);
             foreach (float gx in new[] { Yard.EntryGateX, Yard.ExitGateX })
@@ -357,6 +358,7 @@ namespace StackIsland
                 if (lx > Yard.MinX - 2.4f && lx < Yard.MaxX + 2.4f && z > Yard.MinZ - 2.4f && z < Yard.MaxZ + 2.4f) return true;
                 if (z < Yard.MinZ && (Mathf.Abs(lx - Yard.EntryGateX) < 2.6f || Mathf.Abs(lx - Yard.ExitGateX) < 2.6f)) return true;
                 if (i < yards && lx > Yard.MaxX && lx < Yard.Spacing + Yard.MinX && z > Yard.SideGateZ0 - 3f && z < Yard.SideGateZ1 + 3f) return true;
+                if (i < yards && lx > Yard.MaxX && lx < Yard.Spacing + Yard.MinX && z > Yard.WideGapZ0 - 2f && z < Yard.WideGapZ1 + 2f) return true;
             }
             return false;
         }

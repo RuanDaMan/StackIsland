@@ -7,7 +7,8 @@ namespace StackIsland
     public static class GameInput
     {
         public static InputActionMap Map { get; private set; }
-        public static InputAction Move, Zoom, Pause, ClickMove, Point, ToggleManagers, ToggleView, Look;
+        public static InputAction Move, Zoom, Pause, ClickMove, Point, ToggleManagers, ToggleView, Look, RotateLeft, RotateRight;
+        public static readonly InputAction[] Travel = new InputAction[10];   // keys 1..9, 0 = yards 1..10
 
         public static void Init()
         {
@@ -25,6 +26,10 @@ namespace StackIsland
             ToggleView = Map.AddAction("ToggleView", InputActionType.Button, "<Keyboard>/v");
             Look = Map.AddAction("Look", InputActionType.Value, "<Mouse>/delta");
             Look.AddBinding("<Gamepad>/rightStick");
+            RotateLeft = Map.AddAction("RotateLeft", InputActionType.Button, "<Keyboard>/q");
+            RotateRight = Map.AddAction("RotateRight", InputActionType.Button, "<Keyboard>/e");
+            for (int i = 0; i < Travel.Length; i++)
+                Travel[i] = Map.AddAction("Travel" + (i + 1), InputActionType.Button, $"<Keyboard>/{(i + 1) % 10}");
             Map.Enable();
         }
 
@@ -43,8 +48,8 @@ namespace StackIsland
         public bool FirstPerson { get; private set; }
         public float LookSensitivity = 0.12f;
 
-        const float TopDownYaw = 32f, TopDownFov = 34f, FirstPersonFov = 68f, EyeHeight = 1.45f;
-        float _dist, _fpPitch = 10f;
+        const float TopDownYaw = 32f, TopDownFov = 34f, FirstPersonFov = 68f, EyeHeight = 1.45f, RotateStep = 45f;
+        float _dist, _fpPitch = 10f, _yawTarget = TopDownYaw;
         Vector3 _focus;
         Camera _cam;
 
@@ -58,7 +63,7 @@ namespace StackIsland
             if (Game.I != null && Game.I.Player != null) Game.I.Player.SetModelVisible(!on);
             if (!on)
             {
-                Yaw = TopDownYaw;
+                Yaw = _yawTarget = TopDownYaw;
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
                 Snap();
@@ -101,7 +106,17 @@ namespace StackIsland
                 float scroll = GameInput.Zoom.ReadValue<float>();
                 if (Mathf.Abs(scroll) > 0.01f) Distance = Mathf.Clamp(Distance * (scroll > 0 ? 0.9f : 1.11f), MinDistance, MaxDistance);
             }
-            if (Orbit) Yaw += dt * 5f;
+            if (Orbit) _yawTarget = Yaw += dt * 5f;
+            else
+            {
+                // Q / E: turn the view in 45° steps on a fixed grid, so one press from the start gives a square-on view
+                if (g != null && !g.InputBlocked && GameInput.RotateLeft != null)
+                {
+                    if (GameInput.RotateLeft.WasPressedThisFrame()) _yawTarget = Mathf.Ceil(_yawTarget / RotateStep - 1.001f) * RotateStep;
+                    if (GameInput.RotateRight.WasPressedThisFrame()) _yawTarget = Mathf.Floor(_yawTarget / RotateStep + 1.001f) * RotateStep;
+                }
+                Yaw = Mathf.LerpAngle(Yaw, _yawTarget, 1 - Mathf.Exp(-10f * dt));
+            }
             _dist = Mathf.Lerp(_dist, Distance, 1 - Mathf.Exp(-10 * dt));
             if (Target != null) _focus = Vector3.Lerp(_focus, Target.position, 1 - Mathf.Exp(-7f * dt));
             Apply();

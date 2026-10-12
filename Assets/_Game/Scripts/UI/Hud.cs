@@ -86,6 +86,14 @@ namespace StackIsland
             _mgrText = UIKit.Text(_mgrBox.rectTransform, "", 22, TextAlignmentOptions.Center, Color.white, "label");
             UIKit.Stretch(_mgrText.rectTransform, 6);
             _mgrBox.gameObject.SetActive(false);
+
+            // controls cheat-sheet, bottom left
+            var keys = UIKit.Text(_hudLayer.transform, "<b>1-9, 0</b> quick travel   <b>Q / E</b> turn view   <b>V</b> first person   <b>Esc</b> menu",
+                18, TextAlignmentOptions.BottomLeft, new Color(1f, 1f, 1f, 0.75f), "keys");
+            keys.outlineWidth = 0.2f;
+            keys.outlineColor = new Color32(0, 0, 0, 140);
+            keys.textWrappingMode = TextWrappingModes.NoWrap;
+            UIKit.Place(keys.rectTransform, Vector2.zero, Vector2.zero, new Vector2(20, 8), new Vector2(760, 26));
         }
 
         void UpdateManagers()
@@ -337,6 +345,15 @@ namespace StackIsland
 
             if (GameInput.ToggleManagers.WasPressedThisFrame() && !_menu.activeSelf && !_pause.activeSelf && _g.HasManagers)
                 _g.SetManagersPaused(!_g.Save.managersPaused);
+            if (!_menu.activeSelf && !_pause.activeSelf)
+                for (int i = 0; i < GameInput.Travel.Length; i++)
+                    if (GameInput.Travel[i].WasPressedThisFrame())
+                    {
+                        var def = YardDefs.Get(i + 1);
+                        if (def == null) break;
+                        if (_g.TravelTo(i + 1)) Toast($"Travelled to {def.Name}");
+                        else Toast($"{def.Name} isn't open yet");
+                    }
             if (GameInput.ToggleView.WasPressedThisFrame() && !_menu.activeSelf && !_pause.activeSelf && _g.Cam != null)
             {
                 _g.Cam.SetFirstPerson(!_g.Cam.FirstPerson);

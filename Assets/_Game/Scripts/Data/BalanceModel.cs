@@ -55,8 +55,9 @@ namespace StackIsland
             double gatherTime, sourceCap;
             if (d.Source == SourceKind.Pen)
             {
-                gatherTime = gcap / (double)d.RawPerAnimal * (d.AnimalHp * 0.5 + 1.5) + gcap * 0.15;
-                sourceCap = Economy.PenAnimals(src) * d.RawPerAnimal / (Economy.PenRespawn(src) + d.AnimalHp * 0.5);
+                int hits = Economy.HitsToCatch(d.AnimalHp, Economy.GathererDamage(d.AnimalHp, f.Gatherers));
+                gatherTime = gcap / (double)d.RawPerAnimal * (hits * 0.5 + 1.5) + gcap * 0.15;
+                sourceCap = Economy.PenAnimals(src) * d.RawPerAnimal / (Economy.PenRespawn(src) + hits * 0.5);
             }
             else
             {
@@ -200,7 +201,9 @@ namespace StackIsland
             var gateTimes = new List<(int yard, double h)>();
             int purchases = 0;
             int totalLevels = Economy.GlobalTiles.Sum(t => t.MaxLevel) + YardDefs.All.Count * Economy.YardTiles.Sum(t => t.MaxLevel) + (YardDefs.All.Count - 1);
-            double lastReport = 0;
+            double lastReport = 0, segStart = 0, segLongest = 0;
+            string segLongestId = "";
+            var waits = new List<(double sec, double at, string id)>();
             while (purchases < 5000)
             {
                 var opts = Options(s).ToList();
@@ -238,6 +241,8 @@ namespace StackIsland
                 }
                 double need = Math.Max(0, best.Cost - s.Cash);
                 double dt = need / inc + PurchaseOverhead;
+                waits.Add((dt, s.Time, best.Id));
+                if (dt > segLongest) { segLongest = dt; segLongestId = best.Id; }
                 s.Time += dt;
                 s.Cash += inc * dt - best.Cost;
                 s.Earned += inc * dt;
@@ -246,7 +251,9 @@ namespace StackIsland
                 if (best.IsGate)
                 {
                     gateTimes.Add((s.Open, s.Time / 3600));
-                    log.AppendLine($"[BalanceSim] yard {s.Open} ({YardDefs.Get(s.Open).Name}) opens at {s.Time / 3600:0.0}h  income {NumberFormatter.Format(Income(s))}/s");
+                    log.AppendLine($"[BalanceSim] yard {s.Open} ({YardDefs.Get(s.Open).Name}) opens at {s.Time / 3600:0.0}h  (+{(s.Time - segStart) / 3600:0.0}h, longest wait {segLongest / 60:0}m for {segLongestId})  income {NumberFormatter.Format(Income(s))}/s");
+                    segStart = s.Time;
+                    segLongest = 0;
                 }
                 if (s.Time - lastReport > 3600 * 5)
                 {
@@ -255,6 +262,11 @@ namespace StackIsland
                 }
             }
             LastTotalHours = s.Time / 3600;
+            log.AppendLine($"[BalanceSim] after the last yard: +{(s.Time - segStart) / 3600:0.0}h, longest wait {segLongest / 60:0}m for {segLongestId}");
+            if (Environment.GetEnvironmentVariable("SIM_TAIL") != null)
+                foreach (var w in waits.Skip(waits.Count - 60)) log.AppendLine($"[BalanceSim]   tail: {w.sec / 60:0.0}m at {w.at / 3600:0.0}h {w.id}");
+            foreach (var w in waits.OrderByDescending(w => w.sec).Take(8))
+                log.AppendLine($"[BalanceSim]   slow: {w.sec / 60:0}m at {w.at / 3600:0.0}h for {w.id}");
             log.AppendLine($"[BalanceSim] everything maxed after {s.Time / 3600:0.0}h ({purchases} purchases, final income {NumberFormatter.Format(Income(s))}/s)");
             return log.ToString();
         }

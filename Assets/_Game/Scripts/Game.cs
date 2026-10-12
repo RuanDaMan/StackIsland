@@ -162,6 +162,18 @@ namespace StackIsland
             }
         }
 
+        /// <summary>Quick travel: jump to an open yard (keys 1-9, 0). Lands on a clear spot between the tiles.</summary>
+        public bool TravelTo(int index)
+        {
+            if (!Yards.TryGetValue(index, out var y)) return false;
+            Fx.I?.Puff(Player.transform.position + Vector3.up, 16);
+            Player.Teleport(y.W(5.5f, -5f));
+            Cam.Snap();
+            Fx.I?.Puff(Player.transform.position + Vector3.up, 24);
+            Sfx.I?.Play(Sfx.I.Pop, 0.5f, 0.8f);
+            return true;
+        }
+
         public Yard YardAt(Vector3 p)
         {
             foreach (var y in Yards.Values) if (y.Contains(p)) return y;
@@ -228,7 +240,10 @@ namespace StackIsland
                         apply = l => SyncWorkers(y);
                         describe = l => d.Source == SourceKind.None
                             ? $"A helper who fetches dishes from the other yards for the {d.StationName} ({l} > {l + 1} hired)"
-                            : $"A helper who gathers {Items.Name(d.Raw)} and brings it to the {d.StationName} ({l} > {l + 1} hired)";
+                            : d.Source == SourceKind.Pen
+                                ? $"A helper who catches {d.AnimalName}s and brings the {Items.Name(d.Raw)} to the {d.StationName} ({l} > {l + 1} hired). " +
+                                  $"Every hire makes them all stronger: {(l == 0 ? HitsText(d, 1) : $"{HitsText(d, l)} > {HitsText(d, l + 1)}")} per {d.AnimalName}"
+                                : $"A helper who gathers {Items.Name(d.Raw)} and brings it to the {d.StationName} ({l} > {l + 1} hired)";
                         break;
                     case "speed":
                         title = d.SpeedTitle;
@@ -356,6 +371,12 @@ namespace StackIsland
             if (best != null && best.Remaining <= Save.cash) best.TryBuyNow();   // one purchase per tick
         }
 
+        static string HitsText(YardDef d, int gatherLevel)
+        {
+            int hits = Economy.HitsToCatch(d.AnimalHp, Economy.GathererDamage(d.AnimalHp, gatherLevel));
+            return hits == 1 ? "1 hit" : $"{hits} hits";
+        }
+
         bool ManagerBuys(string padId)
         {
             if (padId.StartsWith("g.")) return true;   // the player's own upgrades
@@ -393,7 +414,8 @@ namespace StackIsland
                 y.Waiters.Add(w);
                 if (!_loading) Fx.I?.Puff(w.transform.position + Vector3.up, 20);
             }
-            foreach (var w in y.Gatherers) { w.Speed = speed; w.SetCapacity(Economy.GathererCarry(crew)); }
+            int damage = Economy.GathererDamage(y.Def.AnimalHp, Level(k + "gather"));
+            foreach (var w in y.Gatherers) { w.Speed = speed; w.SetCapacity(Economy.GathererCarry(crew)); w.Damage = damage; }
             foreach (var w in y.Couriers) { w.Speed = speed; w.SetCapacity(Economy.GathererCarry(crew)); }
             foreach (var w in y.Waiters) { w.Speed = speed; w.SetCapacity(Economy.WaiterCarry(crew)); }
         }

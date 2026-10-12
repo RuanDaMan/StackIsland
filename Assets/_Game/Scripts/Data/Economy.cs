@@ -26,7 +26,7 @@ namespace StackIsland
         public static readonly List<TileSpec> YardTiles = new List<TileSpec>
         {
             new TileSpec { Key = "src", Kind = "UPGRADE", MaxLevel = 10, Base = 30, Growth = 1.6, Local = new Vector3(-8.2f, 0, 1.4f) },
-            new TileSpec { Key = "gather", Kind = "HIRE", MaxLevel = 4, Base = 50, Growth = 2.6, Local = new Vector3(-2.6f, 0, -1.4f) },
+            new TileSpec { Key = "gather", Kind = "HIRE", MaxLevel = GatherMaxLevel, Base = 50, Growth = 2.6, Local = new Vector3(-2.6f, 0, -1.4f) },
             new TileSpec { Key = "speed", Kind = "UPGRADE", MaxLevel = 20, Base = 100, Growth = 1.4, Local = new Vector3(10.9f, 0, 13f) },
             new TileSpec { Key = "waiter", Kind = "HIRE", MaxLevel = 3, Base = 120, Growth = 2.6, Local = new Vector3(10.9f, 0, -3.6f) },
             new TileSpec { Key = "parrot", Kind = "HIRE", MaxLevel = 1, Base = 180, Growth = 1, Local = new Vector3(5.6f, 0, -14.8f) },
@@ -62,6 +62,10 @@ namespace StackIsland
         public const float ServeSeconds = 0.16f;   // a customer takes one item from the counter every this
         public static float HelperSpeed(int crew) => 3.6f * (1 + 0.08f * crew);
         public static int GathererCarry(int crew) => 8 + 2 * crew;
+        /// <summary>How hard each catcher hits: every catcher hired makes the whole team stronger; the last hire one-shots.</summary>
+        public static int GathererDamage(int animalHp, int gatherLevel) => Math.Max(1, Math.Min(animalHp, (int)Math.Round(animalHp * gatherLevel / (double)GatherMaxLevel, MidpointRounding.AwayFromZero)));
+        public static int HitsToCatch(int animalHp, int damage) => (animalHp + Math.Max(1, damage) - 1) / Math.Max(1, damage);
+        public const int GatherMaxLevel = 4;
         public static int WaiterCarry(int crew) => 10 + 2 * crew;
         public static int Backpack(int level) => 12 + 4 * level;
         public static float WalkSpeed(int shoes) => 5.6f * (1 + 0.08f * shoes);
