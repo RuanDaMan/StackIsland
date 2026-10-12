@@ -7,7 +7,7 @@ namespace StackIsland
     public static class GameInput
     {
         public static InputActionMap Map { get; private set; }
-        public static InputAction Move, Zoom, Pause, ClickMove, Point, ToggleManagers;
+        public static InputAction Move, Zoom, Pause, ClickMove, Point, ToggleManagers, ToggleView, Look;
 
         public static void Init()
         {
@@ -22,6 +22,9 @@ namespace StackIsland
             ClickMove = Map.AddAction("ClickToMove", InputActionType.Button, "<Mouse>/rightButton");
             Point = Map.AddAction("Point", InputActionType.Value, "<Mouse>/position");
             ToggleManagers = Map.AddAction("ToggleManagers", InputActionType.Button, "<Keyboard>/m");
+            ToggleView = Map.AddAction("ToggleView", InputActionType.Button, "<Keyboard>/v");
+            Look = Map.AddAction("Look", InputActionType.Value, "<Mouse>/delta");
+            Look.AddBinding("<Gamepad>/rightStick");
             Map.Enable();
         }
 
@@ -37,9 +40,30 @@ namespace StackIsland
         public float Distance = 21f;
         public float MinDistance = 13f, MaxDistance = 34f;
         public bool Orbit;   // slow orbit behind the main menu
+        public bool FirstPerson { get; private set; }
+        public float LookSensitivity = 0.12f;
 
-        float _dist;
+        const float TopDownYaw = 32f, TopDownFov = 34f, FirstPersonFov = 68f, EyeHeight = 1.45f;
+        float _dist, _fpPitch = 10f;
         Vector3 _focus;
+        Camera _cam;
+
+        /// <summary>Switch between the top-down follow view and looking out of your own eyes (mouse to look around).</summary>
+        public void SetFirstPerson(bool on)
+        {
+            FirstPerson = on;
+            if (_cam == null) _cam = GetComponent<Camera>();
+            _cam.fieldOfView = on ? FirstPersonFov : TopDownFov;
+            _cam.nearClipPlane = on ? 0.08f : 0.5f;
+            if (Game.I != null && Game.I.Player != null) Game.I.Player.SetModelVisible(!on);
+            if (!on)
+            {
+                Yaw = TopDownYaw;
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+                Snap();
+            }
+        }
 
         void Start()
         {
@@ -57,6 +81,21 @@ namespace StackIsland
         {
             float dt = Time.unscaledDeltaTime;
             var g = Game.I;
+            if (FirstPerson && Target != null)
+            {
+                bool blocked = g == null || g.InputBlocked;
+                Cursor.lockState = blocked ? CursorLockMode.None : CursorLockMode.Locked;
+                Cursor.visible = blocked;
+                if (!blocked && GameInput.Look != null)
+                {
+                    var look = GameInput.Look.ReadValue<Vector2>();
+                    Yaw += look.x * LookSensitivity;
+                    _fpPitch = Mathf.Clamp(_fpPitch - look.y * LookSensitivity, -50f, 75f);
+                }
+                transform.position = Target.position + Vector3.up * EyeHeight;
+                transform.rotation = Quaternion.Euler(_fpPitch, Yaw, 0);
+                return;
+            }
             if (g != null && !g.InputBlocked && GameInput.Zoom != null)
             {
                 float scroll = GameInput.Zoom.ReadValue<float>();

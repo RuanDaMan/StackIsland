@@ -338,23 +338,29 @@ namespace StackIsland
             if (!_loading) Fx.I?.Puff(m.position + Vector3.up, 20);
         }
 
-        /// <summary>Managers buy their yard's cheapest affordable upgrade (never gates: moving on is the player's call).</summary>
+        /// <summary>
+        /// Managers buy the cheapest affordable upgrade among their yards and your own upgrades (bigger stack, shoes...).
+        /// Never gates: moving on is the player's call.
+        /// </summary>
         void RunManagers()
         {
             _managerT -= Time.deltaTime;
             if (_managerT > 0 || _managed.Count == 0 || Save.managersPaused) return;
             _managerT = 0.8f;
-            foreach (int yard in _managed)
+            BuyPad best = null;
+            foreach (var p in BuyPad.All)
             {
-                BuyPad best = null;
-                string prefix = $"y{yard}.";
-                foreach (var p in BuyPad.All)
-                {
-                    if (!p.Id.StartsWith(prefix) || p.Id.EndsWith(".gate") || !p.Shown || p.Maxed) continue;
-                    if (best == null || p.Remaining < best.Remaining) best = p;
-                }
-                if (best != null && best.Remaining <= Save.cash && best.TryBuyNow()) return;   // one purchase per tick
+                if (p.Id.EndsWith(".gate") || !p.Shown || p.Maxed || !ManagerBuys(p.Id)) continue;
+                if (best == null || p.Remaining < best.Remaining) best = p;
             }
+            if (best != null && best.Remaining <= Save.cash) best.TryBuyNow();   // one purchase per tick
+        }
+
+        bool ManagerBuys(string padId)
+        {
+            if (padId.StartsWith("g.")) return true;   // the player's own upgrades
+            foreach (int yard in _managed) if (padId.StartsWith($"y{yard}.")) return true;
+            return false;
         }
 
         void SyncWorkers(Yard y)

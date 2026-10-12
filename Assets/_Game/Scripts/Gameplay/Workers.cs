@@ -16,6 +16,7 @@ namespace StackIsland
         float _bob;
 
         public int Carrying => Stack != null ? Stack.Count : 0;
+        public string DebugRoute => $"target {Yard.transform.InverseTransformPoint(_routeTarget)} route [{string.Join(", ", _route.ConvertAll(p => Yard.transform.InverseTransformPoint(p).ToString()))}]";
 
         public void Init(Yard yard, string model, Color cap, int capacity, Vector3 start)
         {
@@ -112,10 +113,26 @@ namespace StackIsland
             else Deliver();
         }
 
+        /// <summary>
+        /// While the player is gathering in this yard's source (and has room), helpers leave what's around them alone:
+        /// the player gets first pick.
+        /// </summary>
+        Vector3? PlayerShare()
+        {
+            var p = Game.I.Player;
+            if (p == null || p.Stack.IsFull || !Yard.InSource(p.transform.position)) return null;
+            return p.transform.position;
+        }
+
+        const float PlayerShareRadius = 3.2f;
+
         void Pick()
         {
             if (Stack.IsFull) { _mode = Mode.Deliver; return; }
-            if (!_hasSpot && !(_hasSpot = Yard.Field.NearestItem(transform.position, out _fieldSpot)))
+            var share = PlayerShare();
+            // our spot is now next to the player: find another
+            if (_hasSpot && share.HasValue && (_fieldSpot - share.Value).sqrMagnitude < PlayerShareRadius * PlayerShareRadius) _hasSpot = false;
+            if (!_hasSpot && !(_hasSpot = Yard.Field.NearestItem(transform.position, out _fieldSpot, share, PlayerShareRadius)))
             {
                 if (Stack.Count > 0) _mode = Mode.Deliver;
                 return;
@@ -124,7 +141,7 @@ namespace StackIsland
             _transfer -= Time.deltaTime;
             if (_transfer > 0) return;
             _transfer = 0.12f;
-            if (Yard.Field.Harvest(transform.position, 1.0f, Mathf.Min(2, Stack.Space), _picked) > 0)
+            if (Yard.Field.Harvest(transform.position, 1.0f, Mathf.Min(2, Stack.Space), _picked, share, PlayerShareRadius) > 0)
                 foreach (var p in _picked) Stack.Add(Yard.Def.Raw, p);
             if ((transform.position - _fieldSpot).sqrMagnitude < 0.5f) _hasSpot = false;
         }
@@ -133,10 +150,12 @@ namespace StackIsland
         {
             if (Stack.IsFull) { Release(); _mode = Mode.Deliver; return; }
             // grab what's on the ground first
+            var share = PlayerShare();
+            if (_claim != null && share.HasValue && (_claim.transform.position - share.Value).sqrMagnitude < PlayerShareRadius * PlayerShareRadius) Release();
             if (_claim == null || !_claim.enabled || (_claim.ClaimedBy != null && _claim.ClaimedBy != (object)this))
             {
                 Release();
-                _claim = NearestLoose();
+                _claim = NearestLoose(share);
                 if (_claim != null) _claim.ClaimedBy = this;
             }
             if (_claim != null)
@@ -197,13 +216,14 @@ namespace StackIsland
             _claim = null;
         }
 
-        LooseItem NearestLoose()
+        LooseItem NearestLoose(Vector3? share)
         {
             LooseItem best = null;
             float bd = float.MaxValue;
             foreach (var li in LooseItem.All)
             {
                 if (li.ClaimedBy != null || li.Yard != Yard) continue;
+                if (share.HasValue && (li.transform.position - share.Value).sqrMagnitude < PlayerShareRadius * PlayerShareRadius) continue;
                 float d = (li.transform.position - transform.position).sqrMagnitude;
                 if (d < bd) { bd = d; best = li; }
             }

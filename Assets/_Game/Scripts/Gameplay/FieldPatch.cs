@@ -58,8 +58,11 @@ namespace StackIsland
             _present++;
         }
 
-        /// <summary>Take up to <paramref name="max"/> items within <paramref name="radius"/> of <paramref name="pos"/>.</summary>
-        public int Harvest(Vector3 pos, float radius, int max, List<Vector3> at)
+        /// <summary>
+        /// Take up to <paramref name="max"/> items within <paramref name="radius"/> of <paramref name="pos"/>,
+        /// leaving alone anything within <paramref name="keepRadius"/> of <paramref name="keepFor"/> (the player's share).
+        /// </summary>
+        public int Harvest(Vector3 pos, float radius, int max, List<Vector3> at, Vector3? keepFor = null, float keepRadius = 0f)
         {
             at.Clear();
             if (max <= 0) return 0;
@@ -70,7 +73,7 @@ namespace StackIsland
                 if (go == null) continue;
                 var d = _cells[i] - pos;
                 d.y = 0;
-                if (d.sqrMagnitude > r2) continue;
+                if (d.sqrMagnitude > r2 || Kept(i, keepFor, keepRadius)) continue;
                 at.Add(go.transform.position);
                 Items.Release(Yard.Def.Raw, go);
                 _items[i] = null;
@@ -79,19 +82,27 @@ namespace StackIsland
             return at.Count;
         }
 
-        /// <summary>A spot with items, nearest to <paramref name="from"/> (for pickers).</summary>
-        public bool NearestItem(Vector3 from, out Vector3 spot)
+        /// <summary>A spot with items, nearest to <paramref name="from"/> (for pickers), outside the player's share.</summary>
+        public bool NearestItem(Vector3 from, out Vector3 spot, Vector3? keepFor = null, float keepRadius = 0f)
         {
             spot = from;
             float best = float.MaxValue;
             bool found = false;
             for (int i = 0; i < _activeCells; i++)
             {
-                if (_items[i] == null) continue;
+                if (_items[i] == null || Kept(i, keepFor, keepRadius)) continue;
                 float d = (_cells[i] - from).sqrMagnitude;
                 if (d < best) { best = d; spot = _cells[i]; found = true; }
             }
             return found;
+        }
+
+        bool Kept(int i, Vector3? keepFor, float keepRadius)
+        {
+            if (!keepFor.HasValue) return false;
+            var d = _cells[i] - keepFor.Value;
+            d.y = 0;
+            return d.sqrMagnitude < keepRadius * keepRadius;
         }
 
         void Update()

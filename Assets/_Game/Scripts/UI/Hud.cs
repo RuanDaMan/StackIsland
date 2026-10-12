@@ -263,6 +263,7 @@ namespace StackIsland
             _continueBtn.gameObject.SetActive(_g.Save.totalEarned > 0 || SaveSystem.HasSave());
             UIKit.SetLabel(_continueBtn, _g.Save.totalEarned > 0 ? "Continue" : "Play");
             _continueBtn.gameObject.SetActive(true);
+            if (_g.Cam.FirstPerson) _g.Cam.SetFirstPerson(false);   // the menu orbits the island from above
             _g.Cam.Orbit = true;
             Time.timeScale = 0f;
         }
@@ -336,6 +337,11 @@ namespace StackIsland
 
             if (GameInput.ToggleManagers.WasPressedThisFrame() && !_menu.activeSelf && !_pause.activeSelf && _g.HasManagers)
                 _g.SetManagersPaused(!_g.Save.managersPaused);
+            if (GameInput.ToggleView.WasPressedThisFrame() && !_menu.activeSelf && !_pause.activeSelf && _g.Cam != null)
+            {
+                _g.Cam.SetFirstPerson(!_g.Cam.FirstPerson);
+                Toast(_g.Cam.FirstPerson ? "First person: mouse to look, V to go back" : "Top-down view");
+            }
             UpdateManagers();
             UpdateInfo();
 

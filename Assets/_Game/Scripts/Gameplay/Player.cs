@@ -10,6 +10,7 @@ namespace StackIsland
     public class Player : MonoBehaviour
     {
         public float Speed = 5.6f;
+        public const float TravelBoost = 1.8f;
         public float AttackRange = 1.9f;
         public float AttackEvery = 0.36f;
         public int Damage = 1;
@@ -63,6 +64,13 @@ namespace StackIsland
             Stack.Capacity = 12;
             Stack.Columns = 2;
             Stack.ColumnSpacing = 0.5f;
+        }
+
+        /// <summary>Hide your own body and knife (first-person view); the stack on your back stays visible.</summary>
+        public void SetModelVisible(bool on)
+        {
+            foreach (var r in _model.GetComponentsInChildren<Renderer>(true))
+                if (!r.transform.IsChildOf(Stack.transform)) r.enabled = on;
         }
 
         public void Teleport(Vector3 p)
@@ -120,16 +128,18 @@ namespace StackIsland
                 else dir = d.normalized;
             }
             IsMoving = dir.sqrMagnitude > 0.0001f;
-            var vel = dir * Speed;
+            var pos = transform.position;
+            // outside the yards (walkways, grass) you jog faster, so getting between yards is quick
+            float speed = Game.I.YardAt(pos) == null ? Speed * TravelBoost : Speed;
+            var vel = dir * speed;
             // stay on the island: no walking out to sea or past the last open yard
             var walk = Game.I.WalkArea;
-            var pos = transform.position;
             if ((pos.x <= walk.xMin && vel.x < 0) || (pos.x >= walk.xMax && vel.x > 0)) vel.x = 0;
             if ((pos.z <= walk.yMin && vel.z < 0) || (pos.z >= walk.yMax && vel.z > 0)) vel.z = 0;
             vel.y = -6f;   // keep grounded
             if (_cc.enabled) _cc.Move(vel * dt);
             if (IsMoving) _model.rotation = Quaternion.Slerp(_model.rotation, Quaternion.LookRotation(dir), 14f * dt);
-            if (Anim.HasClips) Anim.SetMoving(IsMoving, Speed / 4.2f);
+            if (Anim.HasClips) Anim.SetMoving(IsMoving, speed / 4.2f);
             else
             {
                 // fallback hop when the model has no clips
@@ -188,7 +198,7 @@ namespace StackIsland
             for (int i = all.Count - 1; i >= 0 && !Stack.IsFull; i--)
             {
                 var li = all[i];
-                if (li == null || !li.Ready || li.ClaimedBy != null) continue;
+                if (li == null || !li.Ready) continue;   // a helper's claim doesn't stop you: they pick another
                 var d = li.transform.position - transform.position;
                 d.y = 0;
                 if (d.magnitude > 1.9f) continue;

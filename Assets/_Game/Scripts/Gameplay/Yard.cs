@@ -42,14 +42,37 @@ namespace StackIsland
         {
             pts.Clear();
             bool ia = InSource(a), ib = InSource(b);
+            var cur = a;
             if (ia != ib)
             {
                 var inside = SrcGate + new Vector3(0, 0, 1.2f);
                 var outside = SrcGate + new Vector3(0, 0, -1.2f);
-                pts.Add(ia ? inside : outside);
-                pts.Add(ia ? outside : inside);
+                if (ia) { pts.Add(inside); pts.Add(outside); cur = outside; }
+                else { Leg(cur, outside, pts); pts.Add(inside); cur = inside; }
             }
-            pts.Add(b);
+            Leg(cur, b, pts);
+        }
+
+        /// <summary>
+        /// Straight on to <paramref name="to"/>, unless that cuts across the fenced source corner from outside
+        /// (e.g. gate to the tray): then round its front-right corner first.
+        /// </summary>
+        void Leg(Vector3 from, Vector3 to, List<Vector3> pts)
+        {
+            if (Def.Source != SourceKind.None && !InSource(from) && !InSource(to) && CutsSource(from, to))
+                pts.Add(W(SrcMaxX + 0.8f, SrcMinZ - 0.8f));
+            pts.Add(to);
+        }
+
+        bool CutsSource(Vector3 from, Vector3 to)
+        {
+            const float margin = 0.5f;
+            for (int i = 1; i < 24; i++)
+            {
+                var p = transform.InverseTransformPoint(Vector3.Lerp(from, to, i / 24f));
+                if (p.x > SrcMinX - margin && p.x < SrcMaxX + margin && p.z > SrcMinZ - margin && p.z < SrcMaxZ + margin) return true;
+            }
+            return false;
         }
 
         public void Build(YardDef def)

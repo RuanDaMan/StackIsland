@@ -82,5 +82,42 @@ namespace StackIsland.Tests
             Assert.Greater(G.Player.Stack.CountOf(ItemType.Coconut), 0, "walked through the field and picked coconuts");
             _ = cc;
         }
+
+        [UnityTest]
+        public IEnumerator FieldGatherersOnlyCrossTheFenceAtTheGate()
+        {
+            G.PadById("y1.gate").ForceBuy();
+            yield return null;
+            var y2 = G.Yards[2];
+            var gather = G.PadById("y2.gather");
+            for (int i = 0; i < 3; i++) gather.ForceBuy();
+            yield return null;
+            Assert.AreEqual(3, y2.Gatherers.Count);
+            var was = y2.Gatherers.Select(w => y2.InSource(w.transform.position)).ToArray();
+            var last = y2.Gatherers.Select(w => w.transform.position).ToArray();
+            Time.timeScale = 4f;
+            string bad = null;
+            float t = 0;
+            while (t < 40f && bad == null)
+            {
+                t += Time.deltaTime;
+                yield return null;
+                for (int i = 0; i < y2.Gatherers.Count; i++)
+                {
+                    var p = y2.Gatherers[i].transform.position;
+                    bool inside = y2.InSource(p);
+                    if (inside != was[i])
+                    {
+                        // a legal crossing goes through the gate gap in the front fence
+                        var mid = (p + last[i]) * 0.5f;
+                        if (Mathf.Abs(mid.x - y2.SrcGate.x) > 1.3f) bad = $"gatherer {i} crossed at {y2.transform.InverseTransformPoint(mid)} ({(inside ? "in" : "out")}) t={t:0.0} from {y2.transform.InverseTransformPoint(last[i])} {y2.Gatherers[i].DebugRoute}";
+                        was[i] = inside;
+                    }
+                    last[i] = p;
+                }
+            }
+            Time.timeScale = 1f;
+            Assert.IsNull(bad, bad);
+        }
     }
 }
