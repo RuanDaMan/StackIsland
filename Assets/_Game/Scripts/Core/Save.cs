@@ -31,6 +31,7 @@ namespace StackIsland
         public double playTime;
         public long lastSaveUnix;
         public float px, pz;
+        public bool managersPaused;   // Island Managers stop auto-buying (pause menu toggle)
         public List<int> stack = new List<int>();
         public List<PadSave> pads = new List<PadSave>();
         public List<PileSave> piles = new List<PileSave>();

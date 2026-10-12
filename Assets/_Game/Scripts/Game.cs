@@ -122,6 +122,7 @@ namespace StackIsland
             y.transform.SetParent(_world, false);
             y.Build(def);
             Yards[index] = y;
+            IslandBuilder.YardLinks(_world, index);
             BuildYardPads(y);
             if (index == 1) BuildGlobalPads(y);
             // apply already-owned levels (load) and saved piles
@@ -147,6 +148,18 @@ namespace StackIsland
             }
             foreach (var p in BuyPad.All) p.Refresh();
             return y;
+        }
+
+        /// <summary>Where the player may walk: the grass around the open yards, not out into the sea or past the last yard.</summary>
+        public Rect WalkArea
+        {
+            get
+            {
+                int last = 1;
+                foreach (int i in Yards.Keys) last = Mathf.Max(last, i);
+                float x0 = Yard.OriginOf(1).x - 22f, x1 = Yard.OriginOf(last).x + 22f;
+                return Rect.MinMaxRect(x0, -25f, x1, 25f);
+            }
         }
 
         public Yard YardAt(Vector3 p)
@@ -297,6 +310,16 @@ namespace StackIsland
         readonly HashSet<int> _managed = new HashSet<int>();
         float _managerT;
 
+        public bool HasManagers => _managed.Count > 0;
+
+        public void SetManagersPaused(bool paused)
+        {
+            if (Save.managersPaused == paused) return;
+            Save.managersPaused = paused;
+            Hud?.Toast(paused ? "Managers paused" : "Managers auto-buying");
+            SaveNow();
+        }
+
         void HireManager(Yard y)
         {
             if (!_managed.Add(y.Def.Index)) return;
@@ -319,7 +342,7 @@ namespace StackIsland
         void RunManagers()
         {
             _managerT -= Time.deltaTime;
-            if (_managerT > 0 || _managed.Count == 0) return;
+            if (_managerT > 0 || _managed.Count == 0 || Save.managersPaused) return;
             _managerT = 0.8f;
             foreach (int yard in _managed)
             {

@@ -95,7 +95,14 @@ namespace StackIsland
             if (!blocked && GameInput.ClickMove.WasPressedThisFrame() && Camera.main != null)
             {
                 var ray = Camera.main.ScreenPointToRay(GameInput.MousePosition);
-                if (new Plane(Vector3.up, Vector3.zero).Raycast(ray, out float enter)) { _clickTarget = ray.GetPoint(enter); _hasClick = true; }
+                if (new Plane(Vector3.up, Vector3.zero).Raycast(ray, out float enter))
+                {
+                    var area = Game.I.WalkArea;
+                    _clickTarget = ray.GetPoint(enter);
+                    _clickTarget.x = Mathf.Clamp(_clickTarget.x, area.xMin, area.xMax);
+                    _clickTarget.z = Mathf.Clamp(_clickTarget.z, area.yMin, area.yMax);
+                    _hasClick = true;
+                }
             }
             Vector3 dir = Vector3.zero;
             if (input.sqrMagnitude > 0.01f)
@@ -114,6 +121,11 @@ namespace StackIsland
             }
             IsMoving = dir.sqrMagnitude > 0.0001f;
             var vel = dir * Speed;
+            // stay on the island: no walking out to sea or past the last open yard
+            var walk = Game.I.WalkArea;
+            var pos = transform.position;
+            if ((pos.x <= walk.xMin && vel.x < 0) || (pos.x >= walk.xMax && vel.x > 0)) vel.x = 0;
+            if ((pos.z <= walk.yMin && vel.z < 0) || (pos.z >= walk.yMax && vel.z > 0)) vel.z = 0;
             vel.y = -6f;   // keep grounded
             if (_cc.enabled) _cc.Move(vel * dt);
             if (IsMoving) _model.rotation = Quaternion.Slerp(_model.rotation, Quaternion.LookRotation(dir), 14f * dt);

@@ -7,7 +7,7 @@ namespace StackIsland
     public static class GameInput
     {
         public static InputActionMap Map { get; private set; }
-        public static InputAction Move, Zoom, Pause, ClickMove, Point;
+        public static InputAction Move, Zoom, Pause, ClickMove, Point, ToggleManagers;
 
         public static void Init()
         {
@@ -21,6 +21,7 @@ namespace StackIsland
             Pause = Map.AddAction("Pause", InputActionType.Button, "<Keyboard>/escape");
             ClickMove = Map.AddAction("ClickToMove", InputActionType.Button, "<Mouse>/rightButton");
             Point = Map.AddAction("Point", InputActionType.Value, "<Mouse>/position");
+            ToggleManagers = Map.AddAction("ToggleManagers", InputActionType.Button, "<Keyboard>/m");
             Map.Enable();
         }
 

@@ -15,7 +15,9 @@ namespace StackIsland
     {
         Game _g;
         RectTransform _root;
-        TextMeshProUGUI _cash;
+        TextMeshProUGUI _cash, _mgrText;
+        Image _mgrBox;
+        int _mgrShown = -1;
         RectTransform _cashBox;
         double _shown;
         float _pulse;
@@ -23,7 +25,7 @@ namespace StackIsland
         readonly List<(RectTransform rt, CanvasGroup cg, float t)> _toastList = new List<(RectTransform, CanvasGroup, float)>();
         GameObject _menu, _pause, _hudLayer;
         Button _continueBtn;
-        Toggle _windowed;
+        Toggle _windowed, _managers;
 
         public bool IsMenuOpen => (_menu != null && _menu.activeSelf) || (_pause != null && _pause.activeSelf) || (_welcome != null && _welcome.activeSelf);
 
@@ -76,6 +78,26 @@ namespace StackIsland
             _cash.outlineWidth = 0.18f;
             _cash.outlineColor = new Color32(0, 0, 0, 160);
             UIKit.Place(_cash.rectTransform, new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-20, 0), new Vector2(220, 80));
+
+            // manager auto-buy status under the cash (only once a manager is hired)
+            _mgrBox = UIKit.Panel(_hudLayer.transform, new Color(0.08f, 0.1f, 0.14f, 0.55f), "managers");
+            _mgrBox.raycastTarget = false;
+            UIKit.Place(_mgrBox.rectTransform, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-28, -124), new Vector2(330, 44));
+            _mgrText = UIKit.Text(_mgrBox.rectTransform, "", 22, TextAlignmentOptions.Center, Color.white, "label");
+            UIKit.Stretch(_mgrText.rectTransform, 6);
+            _mgrBox.gameObject.SetActive(false);
+        }
+
+        void UpdateManagers()
+        {
+            if (!_g.HasManagers) { if (_mgrShown != -1) { _mgrBox.gameObject.SetActive(false); _mgrShown = -1; } return; }
+            int state = _g.Save.managersPaused ? 0 : 1;
+            if (state == _mgrShown) return;
+            _mgrShown = state;
+            _mgrBox.gameObject.SetActive(true);
+            _mgrText.text = state == 1
+                ? "Manager auto-buy <color=#9CFF9A><b>ON</b></color>  ·  <b>M</b> to pause"
+                : "Manager auto-buy <color=#FF9A8A><b>OFF</b></color>  ·  <b>M</b> to resume";
         }
 
         // ------------------------------------------------------------------ toasts
@@ -201,7 +223,7 @@ namespace StackIsland
             _pause = Overlay("pause", 0.55f);
             // one rounded card in the middle: title, Resume, settings, then leave options
             var card = UIKit.Panel(_pause.transform, new Color(0.1f, 0.14f, 0.2f, 0.96f), "card");
-            UIKit.Place(card.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560, 640));
+            UIKit.Place(card.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560, 690));
             var col = UIKit.Rect("content", card.rectTransform);
             UIKit.Stretch(col, 36);
             var v = UIKit.VLayout(col.gameObject, 16, 0);
@@ -212,13 +234,14 @@ namespace StackIsland
             BigButton(col, "Resume", new Color(0.3f, 0.75f, 0.35f), () => CloseMenus());
 
             var settings = UIKit.Panel(col, new Color(1f, 1f, 1f, 0.06f), "settings");
-            UIKit.Size(settings, -1, 130);
+            UIKit.Size(settings, -1, 180);
             var sv = UIKit.VLayout(settings.gameObject, 10, 16);
             sv.childAlignment = TextAnchor.MiddleLeft;
             var s = _g.Settings;
             var vol = UIKit.Slider(settings.transform, "Volume", s.volume, x => { s.volume = x; if (Sfx.I != null) Sfx.I.Volume = x; SaveSystem.SaveSettings(s); });
             ((RectTransform)vol.transform).GetComponent<LayoutElement>().preferredWidth = 220;
             _windowed = UIKit.Toggle(settings.transform, "Windowed", s.windowed, x => { s.windowed = x; _g.ApplyWindowMode(); SaveSystem.SaveSettings(s); });
+            _managers = UIKit.Toggle(settings.transform, "Managers auto-buy upgrades (M)", !_g.Save.managersPaused, x => _g.SetManagersPaused(!x));
 
             BigButton(col, "Main menu", new Color(0.95f, 0.55f, 0.25f), () => { _g.SaveNow(); ShowMainMenu(); });
             BigButton(col, "Quit", new Color(0.35f, 0.38f, 0.45f), () => { _g.SaveNow(); Application.Quit(); });
@@ -306,10 +329,14 @@ namespace StackIsland
                     _pause.SetActive(true);
                     _pause.transform.SetAsLastSibling();
                     _windowed.SetIsOnWithoutNotify(_g.Settings.windowed);
+                    _managers.SetIsOnWithoutNotify(!_g.Save.managersPaused);
                     Time.timeScale = 0f;
                 }
             }
 
+            if (GameInput.ToggleManagers.WasPressedThisFrame() && !_menu.activeSelf && !_pause.activeSelf && _g.HasManagers)
+                _g.SetManagersPaused(!_g.Save.managersPaused);
+            UpdateManagers();
             UpdateInfo();
 
             // count up/down smoothly, and pop when money comes in

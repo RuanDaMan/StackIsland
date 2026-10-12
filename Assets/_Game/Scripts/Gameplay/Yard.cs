@@ -273,33 +273,6 @@ namespace StackIsland
             col.size = new Vector3(width + 200, 1, 200);
             col.center = new Vector3(cx, -0.5f, 0);
 
-            // walkways between neighbouring yards
-            for (int i = 1; i < yards; i++)
-            {
-                var a = Yard.OriginOf(i);
-                float zc = (Yard.SideGateZ0 + Yard.SideGateZ1) * 0.5f;
-                float xa = a.x + Yard.MaxX, xb = a.x + Yard.Spacing + Yard.MinX;
-                ProcArt.MeshObject("walkway", parent, ProcArt.RoundedSlab(xb - xa + 1.4f, Yard.SideGateZ1 - Yard.SideGateZ0 + 0.6f, 0.4f, 0.05f),
-                    Mats.Lit(new Color(0.96f, 0.8f, 0.62f)), new Vector3((xa + xb) * 0.5f, 0, zc)).GetComponent<Renderer>().receiveShadows = true;
-                foreach (float z in new[] { Yard.SideGateZ0 - 0.2f, Yard.SideGateZ1 + 0.2f })
-                {
-                    ProcArt.LowWall(parent, new Vector3(xa, 0, z), new Vector3(xb, 0, z), 0.6f, 0.4f);
-                    var b = new GameObject("walkwayCollider");
-                    b.transform.SetParent(parent, false);
-                    b.transform.position = new Vector3((xa + xb) * 0.5f, 1.5f, z);
-                    b.AddComponent<BoxCollider>().size = new Vector3(xb - xa, 3f, 0.4f);
-                }
-            }
-
-            // paths out of each yard's customer gates
-            for (int i = 1; i <= yards; i++)
-            {
-                var o = Yard.OriginOf(i);
-                foreach (float gx in new[] { Yard.EntryGateX, Yard.ExitGateX })
-                    ProcArt.MeshObject("path", parent, ProcArt.RoundedSlab(2.6f, 12f, 1f, 0.05f), Mats.Lit(new Color(0.96f, 0.78f, 0.6f)), o + new Vector3(gx, -0.26f, Yard.MinZ - 6f))
-                        .GetComponent<Renderer>().receiveShadows = true;
-            }
-
             // trees around everything (not on yards, walkways or paths)
             var rng = new System.Random(11);
             Color[] greens = { new Color(0.36f, 0.78f, 0.25f), new Color(0.3f, 0.7f, 0.22f), new Color(0.48f, 0.85f, 0.3f) };
@@ -322,6 +295,34 @@ namespace StackIsland
                 }
                 placed++;
             }
+        }
+
+        /// <summary>
+        /// The walkway in from the previous yard and the paths out of this yard's customer gates. Built when the yard
+        /// opens, so no paths lead off into empty grass where later yards will stand.
+        /// </summary>
+        public static void YardLinks(Transform parent, int index)
+        {
+            if (index > 1)
+            {
+                var a = Yard.OriginOf(index - 1);
+                float zc = (Yard.SideGateZ0 + Yard.SideGateZ1) * 0.5f;
+                float xa = a.x + Yard.MaxX, xb = a.x + Yard.Spacing + Yard.MinX;
+                ProcArt.MeshObject("walkway", parent, ProcArt.RoundedSlab(xb - xa + 1.4f, Yard.SideGateZ1 - Yard.SideGateZ0 + 0.6f, 0.4f, 0.05f),
+                    Mats.Lit(new Color(0.96f, 0.8f, 0.62f)), new Vector3((xa + xb) * 0.5f, 0, zc)).GetComponent<Renderer>().receiveShadows = true;
+                foreach (float z in new[] { Yard.SideGateZ0 - 0.2f, Yard.SideGateZ1 + 0.2f })
+                {
+                    ProcArt.LowWall(parent, new Vector3(xa, 0, z), new Vector3(xb, 0, z), 0.6f, 0.4f);
+                    var b = new GameObject("walkwayCollider");
+                    b.transform.SetParent(parent, false);
+                    b.transform.position = new Vector3((xa + xb) * 0.5f, 1.5f, z);
+                    b.AddComponent<BoxCollider>().size = new Vector3(xb - xa, 3f, 0.4f);
+                }
+            }
+            var o = Yard.OriginOf(index);
+            foreach (float gx in new[] { Yard.EntryGateX, Yard.ExitGateX })
+                ProcArt.MeshObject("path", parent, ProcArt.RoundedSlab(2.6f, 12f, 1f, 0.05f), Mats.Lit(new Color(0.96f, 0.78f, 0.6f)), o + new Vector3(gx, -0.26f, Yard.MinZ - 6f))
+                    .GetComponent<Renderer>().receiveShadows = true;
         }
 
         static bool Blocked(float x, float z, int yards)
