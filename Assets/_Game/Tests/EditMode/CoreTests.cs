@@ -60,6 +60,24 @@ namespace StackIsland.Tests
         }
 
         [Test]
+        public void EveryAnimalGetsEasierWithEachCatcherAndTheLastOneShots()
+        {
+            foreach (var y in YardDefs.All)
+            {
+                if (y.Source != SourceKind.Pen) continue;
+                int prevHits = int.MaxValue;
+                for (int l = 0; l <= Economy.GatherMaxLevel; l++)
+                {
+                    int hits = Economy.HitsToCatch(y.AnimalHp, Economy.GathererDamage(y.AnimalHp, l));
+                    Assert.LessOrEqual(hits, prevHits, $"{y.Name}: hiring catcher {l} never makes a {y.AnimalName} harder to catch");
+                    prevHits = hits;
+                }
+                Assert.AreEqual(y.AnimalHp, Economy.HitsToCatch(y.AnimalHp, Economy.GathererDamage(y.AnimalHp, 0)), $"{y.Name}: with no catchers you start at full {y.AnimalHp} hits");
+                Assert.AreEqual(1, prevHits, $"{y.Name}: every catcher hired = one hit");
+            }
+        }
+
+        [Test]
         public void ItemsHavePricesAndHeights()
         {
             Assert.Greater(Items.Price(ItemType.CrabCake), 0);
