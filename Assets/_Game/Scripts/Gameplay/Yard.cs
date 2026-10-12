@@ -329,6 +329,9 @@ namespace StackIsland
         /// The walkway in from the previous yard and the paths out of this yard's customer gates. Built when the yard
         /// opens, so no paths lead off into empty grass where later yards will stand.
         /// </summary>
+        // a touch below the yard floors: the slabs overlap the yards' edges and would z-fight (flicker) at the same height
+        const float LinkY = -0.025f;
+
         public static void YardLinks(Transform parent, int index)
         {
             if (index > 1)
@@ -337,11 +340,11 @@ namespace StackIsland
                 float zc = (Yard.SideGateZ0 + Yard.SideGateZ1) * 0.5f;
                 float xa = a.x + Yard.MaxX, xb = a.x + Yard.Spacing + Yard.MinX;
                 ProcArt.MeshObject("walkway", parent, ProcArt.RoundedSlab(xb - xa + 1.4f, Yard.SideGateZ1 - Yard.SideGateZ0 + 0.6f, 0.4f, 0.05f),
-                    Mats.Lit(new Color(0.96f, 0.8f, 0.62f)), new Vector3((xa + xb) * 0.5f, 0, zc)).GetComponent<Renderer>().receiveShadows = true;
+                    Mats.Lit(new Color(0.96f, 0.8f, 0.62f)), new Vector3((xa + xb) * 0.5f, LinkY, zc)).GetComponent<Renderer>().receiveShadows = true;
                 // and a wide plaza across the open side, so you can wander straight over between yards
                 float pz = (Yard.WideGapZ0 + Yard.WideGapZ1) * 0.5f;
                 ProcArt.MeshObject("plaza", parent, ProcArt.RoundedSlab(xb - xa + 1.4f, Yard.WideGapZ1 - Yard.WideGapZ0 + 0.6f, 0.8f, 0.05f),
-                    Mats.Lit(new Color(0.96f, 0.8f, 0.62f)), new Vector3((xa + xb) * 0.5f, 0, pz)).GetComponent<Renderer>().receiveShadows = true;
+                    Mats.Lit(new Color(0.96f, 0.8f, 0.62f)), new Vector3((xa + xb) * 0.5f, LinkY, pz)).GetComponent<Renderer>().receiveShadows = true;
             }
             var o = Yard.OriginOf(index);
             foreach (float gx in new[] { Yard.EntryGateX, Yard.ExitGateX })
