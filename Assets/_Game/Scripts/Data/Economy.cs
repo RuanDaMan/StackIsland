@@ -56,6 +56,9 @@ namespace StackIsland
         public static double PriceMult(int recipe) => 1.0 + 0.15 * recipe;
         public static float SpawnEvery(int busy) => 2.2f * Mathf.Pow(0.9f, busy);
         public static int MaxWant(int busy) => 2 + (busy + 1) / 2;
+        /// <summary>Smallest order a customer places: orders lean to the top half of the range.</summary>
+        public static int MinWant(int maxWant) => Mathf.Max(2, (maxWant + 2) / 2);
+        public static double AvgWant(int busy) => (MinWant(MaxWant(busy)) + MaxWant(busy)) * 0.5;
         public const float ServeSeconds = 0.16f;   // a customer takes one item from the counter every this
         public static float HelperSpeed(int crew) => 3.6f * (1 + 0.08f * crew);
         public static int GathererCarry(int crew) => 8 + 2 * crew;

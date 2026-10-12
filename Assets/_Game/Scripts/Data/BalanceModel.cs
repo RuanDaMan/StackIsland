@@ -48,7 +48,7 @@ namespace StackIsland
             var f = new Flow { Gatherers = s.L(k + "gather"), Waiters = s.L(k + "waiter") };
             f.Station = (1 + s.L(k + "station2")) / Economy.CookSeconds(d, s.L(k + "speed"));
             int busy = s.L(k + "busy");
-            f.Customers = Math.Min((1 + Economy.MaxWant(busy)) * 0.5 / Economy.SpawnEvery(busy), 1 / Economy.ServeSeconds);
+            f.Customers = Math.Min(Economy.AvgWant(busy) / Economy.SpawnEvery(busy), 1 / Economy.ServeSeconds);
 
             int gcap = Economy.GathererCarry(crew);
             int src = s.L(k + "src");

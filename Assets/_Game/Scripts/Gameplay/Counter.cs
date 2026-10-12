@@ -62,7 +62,8 @@ namespace StackIsland
             Shelf = _sign.gameObject.AddComponent<PileZone>();
             Shelf.Id = id + ":shelf";
             Shelf.Type = Sells;
-            Shelf.Capacity = 36;
+            Shelf.Capacity = 99999;   // effectively bottomless; only the first 36 are drawn
+            Shelf.MaxShown = 36;
             Shelf.Drop = true;
             Shelf.Radius = 1.7f;
             Shelf.Display = shelfDisplay;
@@ -143,7 +144,7 @@ namespace StackIsland
                 var go = new GameObject("Customer");
                 go.transform.SetParent(transform.parent, false);
                 var c = go.AddComponent<Customer>();
-                c.Init(this, Random.Range(1, MaxWant + 1));
+                c.Init(this, Random.Range(Economy.MinWant(MaxWant), MaxWant + 1));
                 _queue.Add(c);
             }
             for (int i = 0; i < _queue.Count; i++) _queue[i].SetSlot(i);
@@ -165,8 +166,8 @@ namespace StackIsland
         public string Info()
         {
             return $"<b>Counter</b>\n{Items.Name(Sells)} sells for <color=#9CFF9A>{NumberFormatter.Format(PriceEach)}</color> each\n" +
-                   $"{_queue.Count} customers in line, each wants up to {MaxWant}\n" +
-                   $"On the counter: {Shelf.Count}/{Shelf.Capacity}\n" +
+                   $"{_queue.Count} customers in line, each wants {Economy.MinWant(MaxWant)}-{MaxWant}\n" +
+                   $"On the counter: {Shelf.Count}\n" +
                    (AutoCash ? "Cash Parrot sends all money to your wallet" : $"Cash waiting: {NumberFormatter.Format(Cash.CashValue)} (walk over the tray)");
         }
 
@@ -226,7 +227,7 @@ namespace StackIsland
             hands.transform.SetParent(transform, false);
             hands.transform.localPosition = new Vector3(0, 0.75f, 0.42f);
             _hands = hands.AddComponent<ItemStack>();
-            _hands.Capacity = 10;
+            _hands.Capacity = Mathf.Max(10, want);
 
             _bubble = new GameObject("bubble").transform;
             _bubble.SetParent(transform, false);

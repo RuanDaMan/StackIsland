@@ -230,6 +230,7 @@ namespace StackIsland
     public class WaiterWorker : Worker
     {
         bool _delivering;
+        PileZone _src;
         float _transfer;
 
         void Update()
@@ -238,7 +239,9 @@ namespace StackIsland
             _transfer -= Time.deltaTime;
             if (!_delivering)
             {
-                var src = Yard.BestStationOutput();
+                // stick with the tray we picked: re-picking every frame ping-pongs between stations as their counts shift
+                if (_src == null || _src.Count == 0) _src = Yard.BestStationOutput();
+                var src = _src;
                 if (src == null)
                 {
                     if (Stack.Count > 0) _delivering = true;
@@ -251,7 +254,7 @@ namespace StackIsland
                     src.Remove(out var at, out _);
                     Stack.Add(src.Type, at);
                 }
-                if (Stack.IsFull || (src.Count == 0 && Stack.Count > 0)) _delivering = true;
+                if (Stack.IsFull || (src.Count == 0 && Stack.Count > 0)) { _delivering = true; _src = null; }
             }
             else
             {

@@ -22,6 +22,7 @@ namespace StackIsland
         public int Columns = 3, Rows = 2;
         public Vector2 Spacing = new Vector2(0.55f, 0.45f);
         public bool PlayerAllowed = true;
+        public int MaxShown = int.MaxValue;  // items past this are counted but not drawn (huge piles)
 
         /// <summary>Total value of the cash in this pile (cash piles only); each bundle is worth an equal share.</summary>
         public double CashValue;
@@ -63,6 +64,19 @@ namespace StackIsland
             if (IsFull) return false;
             int i = _count++;
             CashValue += cashValue;
+            if (_views.Count >= MaxShown)
+            {
+                // pile is drawn at its cap: the item just hops onto the top and vanishes into it
+                if (!from.HasValue || Tweens.I == null) return true;
+                var hop = Items.Get(Type, null).transform;
+                var top = Root;
+                var topLocal = SlotLocal(MaxShown - 1);
+                Tweens.I.Fly(hop, from.Value, () => top.TransformPoint(topLocal), 0.2f, 0.7f, () =>
+                {
+                    if (hop != null) Items.Release(Type, hop.gameObject);
+                }, () => top.rotation);
+                return true;
+            }
             var go = Items.Get(Type, Root);
             var tr = go.transform;
             _views.Add(tr);
@@ -98,13 +112,12 @@ namespace StackIsland
                 CashValue -= cash;
                 if (_count == 0) CashValue = 0;
             }
+            if (_views.Count == 0) return true;
             var tr = _views[_views.Count - 1];
+            if (tr != null) at = tr.position;
+            if (_views.Count <= _count) return true;   // hidden items left: the drawn pile stays as it is
             _views.RemoveAt(_views.Count - 1);
-            if (tr != null)
-            {
-                at = tr.position;
-                Items.Release(Type, tr.gameObject);
-            }
+            if (tr != null) Items.Release(Type, tr.gameObject);
             return true;
         }
 
