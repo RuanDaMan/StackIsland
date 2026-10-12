@@ -92,12 +92,19 @@ namespace StackIsland
         public void Toast(string msg)
         {
             var bg = UIKit.Panel(_toasts, new Color(0.08f, 0.1f, 0.14f, 0.75f), "toast");
+            // the layout sizes the box from the text when it rebuilds; measuring here could return 0 before TMP is ready,
+            // which squeezed the toast into a one-letter-wide column
+            var h = bg.gameObject.AddComponent<HorizontalLayoutGroup>();
+            h.padding = new RectOffset(25, 25, 0, 0);
+            h.childAlignment = TextAnchor.MiddleCenter;
+            h.childControlWidth = h.childControlHeight = true;
+            h.childForceExpandWidth = h.childForceExpandHeight = false;
             var t = UIKit.Text(bg.rectTransform, msg, 28, TextAlignmentOptions.Center);
             t.fontStyle = FontStyles.Bold;
-            UIKit.Stretch(t.rectTransform, 8);
+            t.textWrappingMode = TextWrappingModes.NoWrap;
+            t.overflowMode = TextOverflowModes.Ellipsis;
             var le = bg.gameObject.AddComponent<LayoutElement>();
             le.preferredHeight = 52;
-            le.preferredWidth = Mathf.Min(780, 50 + t.GetPreferredValues(msg, 2000, 50).x);
             var cg = bg.gameObject.AddComponent<CanvasGroup>();
             _toastList.Add((bg.rectTransform, cg, 0f));
             while (_toastList.Count > 3) { Destroy(_toastList[0].rt.gameObject); _toastList.RemoveAt(0); }
