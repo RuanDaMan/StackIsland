@@ -13,7 +13,6 @@ namespace StackIsland
         public const float TravelBoost = 1.8f;
         public float AttackRange = 1.9f;
         public float AttackEvery = 0.36f;
-        public int Damage = 1;
 
         public ItemStack Stack { get; private set; }
         public bool IsMoving { get; private set; }
@@ -170,7 +169,7 @@ namespace StackIsland
             if (!IsMoving && to.sqrMagnitude > 0.01f) _model.rotation = Quaternion.LookRotation(to.normalized);
             Fx.I?.Slash(transform.position + Vector3.up * 0.9f + to.normalized * 0.8f, to.normalized);
             Sfx.I?.Play(Sfx.I.Swing, 0.35f, Random.Range(0.9f, 1.15f));
-            crab.Hit(Damage, transform.position);
+            crab.Hit(Game.I.HitDamage(yard), transform.position);   // you're as strong as your catchers here
         }
 
         readonly System.Collections.Generic.List<Vector3> _picked = new System.Collections.Generic.List<Vector3>();

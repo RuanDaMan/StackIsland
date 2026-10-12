@@ -107,7 +107,8 @@ namespace StackIsland
 
             int cap = Economy.Backpack(s.L("g.backpack"));
             double ws = Economy.WalkSpeed(s.L("g.shoes"));
-            double gather = d.Source == SourceKind.Pen ? cap / (double)d.RawPerAnimal * (d.AnimalHp * 0.36 + 1.2)
+            int playerHits = Economy.HitsToCatch(d.AnimalHp, Economy.GathererDamage(d.AnimalHp, f.Gatherers));
+            double gather = d.Source == SourceKind.Pen ? cap / (double)d.RawPerAnimal * (playerHits * 0.36 + 1.2)
                           : d.Source == SourceKind.Field ? cap / 2.0 * 0.05 + 3
                           : FetchTime(s, d, ws) * d.StationInputs.Length;   // carrying dishes over from other yards
             double hand = cap * 0.055;

@@ -105,7 +105,7 @@ namespace StackIsland
                 Source = SourceKind.Field, SourceTitle = "More Nests", Raw = ItemType.Egg,
                 StationName = "Griddle", StationLook = "fryer", CookSeconds = 1.8f, Product = ItemType.Pancakes,
                 GathererName = "Egg Collector", SpeedTitle = "Bigger Griddle", RecipeTitle = "Honey Drizzle",
-                Scale = 75900, GateCost = 1.36e8,
+                Scale = 75900, GateCost = 8e7,
                 Floor = new Color(1f, 0.92f, 0.66f), Tile = new Color(0.98f, 0.82f, 0.45f), SourceFloor = new Color(0.86f, 0.74f, 0.5f),
                 Wall = new Color(0.9f, 0.6f, 0.25f), Cage = new Color(0.55f, 0.36f, 0.25f),
             },

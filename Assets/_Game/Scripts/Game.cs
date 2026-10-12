@@ -242,7 +242,7 @@ namespace StackIsland
                             ? $"A helper who fetches dishes from the other yards for the {d.StationName} ({l} > {l + 1} hired)"
                             : d.Source == SourceKind.Pen
                                 ? $"A helper who catches {d.AnimalName}s and brings the {Items.Name(d.Raw)} to the {d.StationName} ({l} > {l + 1} hired). " +
-                                  $"Every hire makes them all stronger: {(l == 0 ? HitsText(d, 1) : $"{HitsText(d, l)} > {HitsText(d, l + 1)}")} per {d.AnimalName}"
+                                  $"Every hire makes you and them stronger: {(l == 0 ? HitsText(d, 1) : $"{HitsText(d, l)} > {HitsText(d, l + 1)}")} per {d.AnimalName}"
                                 : $"A helper who gathers {Items.Name(d.Raw)} and brings it to the {d.StationName} ({l} > {l + 1} hired)";
                         break;
                     case "speed":
@@ -377,6 +377,9 @@ namespace StackIsland
             return hits == 1 ? "1 hit" : $"{hits} hits";
         }
 
+        /// <summary>How hard you and your catchers hit in this yard: every catcher hired makes the whole team stronger.</summary>
+        public int HitDamage(Yard y) => Economy.GathererDamage(y.Def.AnimalHp, Level($"y{y.Def.Index}.gather"));
+
         bool ManagerBuys(string padId)
         {
             if (padId.StartsWith("g.")) return true;   // the player's own upgrades
@@ -414,7 +417,7 @@ namespace StackIsland
                 y.Waiters.Add(w);
                 if (!_loading) Fx.I?.Puff(w.transform.position + Vector3.up, 20);
             }
-            int damage = Economy.GathererDamage(y.Def.AnimalHp, Level(k + "gather"));
+            int damage = HitDamage(y);
             foreach (var w in y.Gatherers) { w.Speed = speed; w.SetCapacity(Economy.GathererCarry(crew)); w.Damage = damage; }
             foreach (var w in y.Couriers) { w.Speed = speed; w.SetCapacity(Economy.GathererCarry(crew)); }
             foreach (var w in y.Waiters) { w.Speed = speed; w.SetCapacity(Economy.WaiterCarry(crew)); }
@@ -464,7 +467,7 @@ namespace StackIsland
                 if (d.magnitude < 2.4f || st.Output.InReach(p, -0.3f)) return st.Info();
                 foreach (var z in st.Inputs) if (z.InReach(p, -0.3f)) return st.Info();
             }
-            if (y.InSource(p)) return y.SourceInfo(Player.Damage);
+            if (y.InSource(p)) return y.SourceInfo(HitDamage(y));
             var c = y.Counter.transform.position - p;
             c.y = 0;
             if ((Mathf.Abs(c.x) < 3.4f && Mathf.Abs(c.z) < 1.2f) || y.Counter.Shelf.InReach(p) || y.Counter.Cash.InReach(p)) return y.Counter.Info();
