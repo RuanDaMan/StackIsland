@@ -51,7 +51,9 @@ namespace StackIsland
             var z = go.AddComponent<PileZone>();
             z.Id = Id + ":" + name;
             z.Type = type;
-            z.Capacity = 40;
+            // drop-off trays take everything you bring (only 40 are drawn); output trays fill up and pause the station
+            z.Capacity = drop && !take ? 99999 : 40;
+            z.MaxShown = 40;
             z.Drop = drop;
             z.Take = take;
             z.Radius = 1.5f;
@@ -76,7 +78,7 @@ namespace StackIsland
             var sb = new System.Text.StringBuilder();
             sb.Append($"<b>{Def.StationName}</b>  {status}\n");
             sb.Append($"Makes 1 {Items.Name(Output.Type)} every {CookSeconds:0.00}s ({60f / CookSeconds:0} per minute)\n");
-            foreach (var z in Inputs) sb.Append($"{Items.Name(z.Type)} waiting: {z.Count}/{z.Capacity}\n");
+            foreach (var z in Inputs) sb.Append($"{Items.Name(z.Type)} waiting: {z.Count}\n");
             sb.Append($"Ready to take: {Output.Count}/{Output.Capacity}");
             return sb.ToString();
         }

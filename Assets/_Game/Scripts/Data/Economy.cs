@@ -25,15 +25,15 @@ namespace StackIsland
 
         public static readonly List<TileSpec> YardTiles = new List<TileSpec>
         {
-            new TileSpec { Key = "src", Kind = "UPGRADE", MaxLevel = 10, Base = 30, Growth = 1.6, Local = new Vector3(-8.2f, 0, 1.4f) },
+            new TileSpec { Key = "src", Kind = "UPGRADE", MaxLevel = 10, Base = 30, Growth = 1.35, Local = new Vector3(-8.2f, 0, 1.4f) },
             new TileSpec { Key = "gather", Kind = "HIRE", MaxLevel = GatherMaxLevel, Base = 50, Growth = 2.6, Local = new Vector3(-2.6f, 0, -1.4f) },
-            new TileSpec { Key = "speed", Kind = "UPGRADE", MaxLevel = 20, Base = 100, Growth = 1.4, Local = new Vector3(10.9f, 0, 13f) },
+            new TileSpec { Key = "speed", Kind = "UPGRADE", MaxLevel = 20, Base = 100, Growth = 1.22, Local = new Vector3(10.9f, 0, 13f) },
             new TileSpec { Key = "waiter", Kind = "HIRE", MaxLevel = 3, Base = 120, Growth = 2.6, Local = new Vector3(10.9f, 0, -3.6f) },
             new TileSpec { Key = "parrot", Kind = "HIRE", MaxLevel = 1, Base = 180, Growth = 1, Local = new Vector3(5.6f, 0, -14.8f) },
             new TileSpec { Key = "station2", Kind = "UNLOCK", MaxLevel = 1, Base = 400, Growth = 1, Local = new Vector3(6f, 0, 3.4f), Width = 4.2f, Depth = 3.2f },
-            new TileSpec { Key = "recipe", Kind = "UPGRADE", MaxLevel = 25, Base = 300, Growth = 1.38, Local = new Vector3(-8.2f, 0, -10.6f) },
-            new TileSpec { Key = "busy", Kind = "UPGRADE", MaxLevel = 12, Base = 150, Growth = 1.5, Local = new Vector3(-2.6f, 0, -7.0f) },
-            new TileSpec { Key = "crew", Kind = "UPGRADE", MaxLevel = 10, Base = 200, Growth = 1.6, Local = new Vector3(-8.2f, 0, -7.6f) },
+            new TileSpec { Key = "recipe", Kind = "UPGRADE", MaxLevel = 25, Base = 300, Growth = 1.2, Local = new Vector3(-8.2f, 0, -10.6f) },
+            new TileSpec { Key = "busy", Kind = "UPGRADE", MaxLevel = 12, Base = 150, Growth = 1.3, Local = new Vector3(-2.6f, 0, -7.0f) },
+            new TileSpec { Key = "crew", Kind = "UPGRADE", MaxLevel = 10, Base = 200, Growth = 1.35, Local = new Vector3(-8.2f, 0, -7.6f) },
             new TileSpec { Key = "manager", Kind = "HIRE", MaxLevel = 1, Base = 2500, Growth = 1, Local = new Vector3(0.4f, 0, -4.0f) },
         };
 

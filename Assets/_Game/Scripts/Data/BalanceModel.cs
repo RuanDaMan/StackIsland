@@ -9,7 +9,7 @@ namespace StackIsland
     /// Plays the whole game in a few milliseconds with a "thoughtful player": a flow model of each yard (supply,
     /// station, helpers, customers) built from the same <see cref="Economy"/> numbers the game uses, and a greedy
     /// buyer that always picks the tile with the best payback. Prints when each yard opens and when everything is
-    /// maxed, so pacing can be tuned against the 80-100 hour target.
+    /// maxed, how long each yard takes and the slowest waits, so pacing can be tuned to even yards with no stalls.
     /// Pure C# (no Unity types) so it also runs outside the engine; the editor menu / batch entry is BalanceSim.
     /// </summary>
     public static class BalanceModel
@@ -193,6 +193,10 @@ namespace StackIsland
 
         /// <summary>Hours until everything is maxed in the last <see cref="Run"/>.</summary>
         public static double LastTotalHours { get; private set; }
+        /// <summary>Longest single wait for one purchase in the last run, in minutes (the "game grinds to a halt" check).</summary>
+        public static double LastLongestWaitMinutes { get; private set; }
+        /// <summary>Hours each yard was the newest one (index 0 = yard 1), the last entry being the time after the final yard opens.</summary>
+        public static List<double> LastYardHours { get; } = new List<double>();
 
         public static string Run()
         {
@@ -204,6 +208,7 @@ namespace StackIsland
             double lastReport = 0, segStart = 0, segLongest = 0;
             string segLongestId = "";
             var waits = new List<(double sec, double at, string id)>();
+            LastYardHours.Clear();
             while (purchases < 5000)
             {
                 var opts = Options(s).ToList();
@@ -251,7 +256,8 @@ namespace StackIsland
                 if (best.IsGate)
                 {
                     gateTimes.Add((s.Open, s.Time / 3600));
-                    log.AppendLine($"[BalanceSim] yard {s.Open} ({YardDefs.Get(s.Open).Name}) opens at {s.Time / 3600:0.0}h  (+{(s.Time - segStart) / 3600:0.0}h, longest wait {segLongest / 60:0}m for {segLongestId})  income {NumberFormatter.Format(Income(s))}/s");
+                    log.AppendLine($"[BalanceSim] yard {s.Open} ({YardDefs.Get(s.Open).Name}) opens at {s.Time / 3600:0.0}h  (+{(s.Time - segStart) / 3600:0.0}h, gate saved {dt / 60:0}m, longest wait {segLongest / 60:0}m for {segLongestId})  income {NumberFormatter.Format(Income(s))}/s");
+                    LastYardHours.Add((s.Time - segStart) / 3600);
                     segStart = s.Time;
                     segLongest = 0;
                 }
@@ -262,6 +268,8 @@ namespace StackIsland
                 }
             }
             LastTotalHours = s.Time / 3600;
+            LastYardHours.Add((s.Time - segStart) / 3600);
+            LastLongestWaitMinutes = waits.Count > 0 ? waits.Max(w => w.sec) / 60 : 0;
             log.AppendLine($"[BalanceSim] after the last yard: +{(s.Time - segStart) / 3600:0.0}h, longest wait {segLongest / 60:0}m for {segLongestId}");
             if (Environment.GetEnvironmentVariable("SIM_TAIL") != null)
                 foreach (var w in waits.Skip(waits.Count - 60)) log.AppendLine($"[BalanceSim]   tail: {w.sec / 60:0.0}m at {w.at / 3600:0.0}h {w.id}");

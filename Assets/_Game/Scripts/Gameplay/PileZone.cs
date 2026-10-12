@@ -29,6 +29,7 @@ namespace StackIsland
 
         readonly List<Transform> _views = new List<Transform>();
         int _count;
+        TMPro.TextMeshPro _countLabel;
 
         public int Count => _count;
         public int Free => Mathf.Max(0, Capacity - _count);
@@ -51,6 +52,21 @@ namespace StackIsland
 
         public Vector3 NextSlotWorld => Root.TransformPoint(SlotLocal(_count));
 
+        /// <summary>A floating count over piles too big to draw in full.</summary>
+        void RefreshCount()
+        {
+            bool show = _count > MaxShown;
+            if (!show) { if (_countLabel != null) _countLabel.gameObject.SetActive(false); return; }
+            if (_countLabel == null)
+            {
+                int perLayer = Mathf.Max(1, Columns * Rows);
+                float top = Mathf.CeilToInt(MaxShown / (float)perLayer) * Items.Height(Type) + 0.7f;
+                _countLabel = Billboard.Label(Root, new Vector3(0, top, 0), 5f, Color.white, "", true);
+            }
+            _countLabel.gameObject.SetActive(true);
+            _countLabel.text = NumberFormatter.Format(_count);
+        }
+
         public bool InReach(Vector3 pos, float extra = 0f)
         {
             var d = pos - transform.position;
@@ -64,6 +80,7 @@ namespace StackIsland
             if (IsFull) return false;
             int i = _count++;
             CashValue += cashValue;
+            RefreshCount();
             if (_views.Count >= MaxShown)
             {
                 // pile is drawn at its cap: the item just hops onto the top and vanishes into it
@@ -106,6 +123,7 @@ namespace StackIsland
             cash = 0;
             if (_count <= 0) return false;
             _count--;
+            RefreshCount();
             if (Type == ItemType.Cash)
             {
                 cash = _count == 0 ? CashValue : CashValue / (_count + 1);
