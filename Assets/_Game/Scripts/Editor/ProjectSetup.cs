@@ -153,41 +153,56 @@ namespace StackIsland.EditorTools
         }
     }
 
-    /// <summary>Windows build into Builds/Windows (run StackIsland.exe from there).</summary>
+    /// <summary>Desktop builds with matching scenes, settings and archive layout.</summary>
     public static class BuildScript
     {
-        const string OutDir = "Builds/Windows";
-
         [MenuItem("Stack Island/Build Windows")]
-        public static void BuildWindows() => Build(false);
+        public static void BuildWindows() => Build(BuildTarget.StandaloneWindows64, false);
 
         [MenuItem("Stack Island/Build Windows + Zip (to share)")]
-        public static void BuildWindowsZip() => Build(true);
+        public static void BuildWindowsZip() => Build(BuildTarget.StandaloneWindows64, true);
 
-        static void Build(bool zip)
+        [MenuItem("Stack Island/Build Linux")]
+        public static void BuildLinux() => Build(BuildTarget.StandaloneLinux64, false);
+
+        [MenuItem("Stack Island/Build Linux + Zip (to share)")]
+        public static void BuildLinuxZip() => Build(BuildTarget.StandaloneLinux64, true);
+
+        static void Build(BuildTarget target, bool zip)
         {
-            if (Directory.Exists(OutDir)) Directory.Delete(OutDir, true);
+            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, target))
+                throw new System.InvalidOperationException($"Install Unity build support for {target}.");
+
+            bool linux = target == BuildTarget.StandaloneLinux64;
+            string platform = linux ? "Linux" : "Windows";
+            string outDir = $"Builds/{platform}";
+            string executable = linux ? "StackIsland.x86_64" : "StackIsland.exe";
+            // Recreate the scene and settings on a fresh checkout, without requiring a separate setup pass.
+            ProjectSetup.RunBatch();
+            if (linux)
+            {
+                PlayerSettings.SetUseDefaultGraphicsAPIs(target, false);
+                PlayerSettings.SetGraphicsAPIs(target, new[] { GraphicsDeviceType.Vulkan, GraphicsDeviceType.OpenGLCore });
+            }
+            if (Directory.Exists(outDir)) Directory.Delete(outDir, true);
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = new[] { ProjectSetup.MainScene },
-                locationPathName = Path.Combine(OutDir, "StackIsland.exe"),
-                target = BuildTarget.StandaloneWindows64,
+                locationPathName = Path.Combine(outDir, executable),
+                target = target,
                 options = BuildOptions.None,
             });
             if (report.summary.result != BuildResult.Succeeded)
-            {
-                Debug.LogError($"[Build] Failed: {report.summary.result}");
-                if (Application.isBatchMode) EditorApplication.Exit(1);
-                return;
-            }
-            foreach (var d in Directory.GetDirectories(OutDir, "*BurstDebugInformation_DoNotShip")) Directory.Delete(d, true);
+                throw new System.InvalidOperationException($"[Build] Failed: {report.summary.result}");
+
+            foreach (var d in Directory.GetDirectories(outDir, "*BurstDebugInformation_DoNotShip")) Directory.Delete(d, true);
             if (zip)
             {
-                const string z = "Builds/StackIsland-Windows.zip";
-                if (File.Exists(z)) File.Delete(z);
-                ZipFile.CreateFromDirectory(OutDir, z);
+                string archive = $"Builds/StackIsland-{platform}.zip";
+                if (File.Exists(archive)) File.Delete(archive);
+                ZipFile.CreateFromDirectory(outDir, archive);
             }
-            Debug.Log($"[Build] OK: {report.summary.totalSize / (1024 * 1024)} MB -> {OutDir}/StackIsland.exe");
+            Debug.Log($"[Build] OK: {report.summary.totalSize / (1024 * 1024)} MB -> {outDir}/{executable}");
         }
     }
 
